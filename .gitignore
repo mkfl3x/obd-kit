@@ -1,0 +1,19 @@
+# Gradle
+.gradle/
+build/
+!gradle/wrapper/gradle-wrapper.jar
+
+# IntelliJ IDEA
+.idea/
+*.iml
+*.iws
+*.ipr
+
+# Kotlin compiler cache
+.kotlin/
+
+# macOS
+.DS_Store
+
+# Local properties (may contain SDK/API paths)
+local.properties
