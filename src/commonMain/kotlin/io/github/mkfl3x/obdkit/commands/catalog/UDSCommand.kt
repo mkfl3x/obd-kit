@@ -7,6 +7,22 @@ import io.github.mkfl3x.obdkit.commands.codec.Codec
 import io.github.mkfl3x.obdkit.commands.protocol.UDSCommandProtocol
 import io.github.mkfl3x.obdkit.commands.protocol.UDSService
 
+// UDS (Unified Diagnostic Services) commands defined in ISO 14229-1.
+//
+// Unlike OBD-II (SAE J1979), UDS is NOT universally mandatory. Its adoption varies:
+//   - Euro 5/6 vehicles (WWH-OBD, UN ECE R.83/R.49) must support UDS for
+//     emissions-related diagnostics via CAN (ISO 15765-4).
+//   - Outside emissions scope, each OEM decides independently which services
+//     and DIDs their ECUs implement.
+//
+// This catalog contains only standard ISO 14229-1 services intended for
+// read-only diagnostics. Write, flash and programming services (0x2E, 0x34–0x37)
+// are intentionally excluded — they are destructive and manufacturer-specific.
+//
+// Standard ECU identification DIDs (0xF1xx) are defined in ISO 14229-1 Annex C.
+// Support for any given DID must be probed at runtime — there is no bitmask
+// equivalent to OBD-II's SupportedPids for UDS.
+
 sealed class UDSCommand : Command {
     final override val branded = CommandBrand(Brand.UNIVERSAL)
 
@@ -24,14 +40,6 @@ sealed class UDSCommand : Command {
         override val label = "Extended Diagnostic Session"
         override val description = "Open the extended session (subFunction 0x03) to unlock ReadDataByIdentifier, RoutineControl and similar services"
         override val code = "1003"
-        override val protocol = UDSCommandProtocol(UDSService.DIAGNOSTIC_SESSION_CONTROL)
-        override val codec = Codec.Raw
-    }
-
-    object ProgrammingSession : UDSCommand() {
-        override val label = "Programming Session"
-        override val description = "Open the ECU programming session (subFunction 0x02) required before firmware flashing via RequestDownload"
-        override val code = "1002"
         override val protocol = UDSCommandProtocol(UDSService.DIAGNOSTIC_SESSION_CONTROL)
         override val codec = Codec.Raw
     }
@@ -87,6 +95,30 @@ sealed class UDSCommand : Command {
         override val label = "Read Supported DTCs"
         override val description = "Return the list of all DTC codes this ECU is capable of detecting (subFunction 0x0A)"
         override val code = "190A"
+        override val protocol = UDSCommandProtocol(UDSService.READ_DTC_INFO)
+        override val codec = Codec.Hex
+    }
+
+    object ReadDtcCount : UDSCommand() {
+        override val label = "Read DTC Count by Status Mask"
+        override val description = "Return only the count of DTCs matching the given status mask 0xFF, not the full list (subFunction 0x01)"
+        override val code = "1901FF"
+        override val protocol = UDSCommandProtocol(UDSService.READ_DTC_INFO)
+        override val codec = Codec.Hex
+    }
+
+    object ReadDtcSnapshotIdentification : UDSCommand() {
+        override val label = "Read DTC Snapshot Identification"
+        override val description = "Return list of all DTC numbers and their associated snapshot record numbers (freeze frame index) (subFunction 0x03)"
+        override val code = "1903"
+        override val protocol = UDSCommandProtocol(UDSService.READ_DTC_INFO)
+        override val codec = Codec.Hex
+    }
+
+    object ReadDtcExtDataAll : UDSCommand() {
+        override val label = "Read DTC Extended Data — All"
+        override val description = "Return extended data records for all stored DTCs (subFunction 0x06, extDataRecordNumber 0xFF)"
+        override val code = "1906FFFFFF"
         override val protocol = UDSCommandProtocol(UDSService.READ_DTC_INFO)
         override val codec = Codec.Hex
     }
@@ -166,12 +198,52 @@ sealed class UDSCommand : Command {
         override val codec = Codec.Ascii
     }
 
+    object ReadActiveSession : UDSCommand() {
+        override val label = "Active Diagnostic Session"
+        override val description = "Returns the currently active diagnostic session type (ISO 14229 DID 0xF186); 0x01=default, 0x02=programming, 0x03=extended"
+        override val code = "22F186"
+        override val protocol = UDSCommandProtocol(UDSService.READ_DATA_BY_IDENTIFIER, "F186")
+        override val codec = Codec.Hex
+    }
+
+    object ReadSystemSupplierIdentifier : UDSCommand() {
+        override val label = "System Supplier Identifier"
+        override val description = "Tier-1 ECU supplier identifier string (ISO 14229 DID 0xF18A)"
+        override val code = "22F18A"
+        override val protocol = UDSCommandProtocol(UDSService.READ_DATA_BY_IDENTIFIER, "F18A")
+        override val codec = Codec.Ascii
+    }
+
     object ReadSystemSupplierSoftwareVersion : UDSCommand() {
         override val label = "System Supplier ECU Software Version"
         override val description = "Software version string as defined by the ECU tier-1 supplier (ISO 14229 DID 0xF195)"
         override val code = "22F195"
         override val protocol = UDSCommandProtocol(UDSService.READ_DATA_BY_IDENTIFIER, "F195")
         override val codec = Codec.Ascii
+    }
+
+    object ReadSystemNameEngineType : UDSCommand() {
+        override val label = "System Name / Engine Type"
+        override val description = "Vehicle system name or engine type identifier string (ISO 14229 DID 0xF197)"
+        override val code = "22F197"
+        override val protocol = UDSCommandProtocol(UDSService.READ_DATA_BY_IDENTIFIER, "F197")
+        override val codec = Codec.Ascii
+    }
+
+    object ReadRepairShopCode : UDSCommand() {
+        override val label = "Repair Shop Code"
+        override val description = "Code identifying the repair shop or tester that last serviced this ECU (ISO 14229 DID 0xF198)"
+        override val code = "22F198"
+        override val protocol = UDSCommandProtocol(UDSService.READ_DATA_BY_IDENTIFIER, "F198")
+        override val codec = Codec.Ascii
+    }
+
+    object ReadProgrammingDate : UDSCommand() {
+        override val label = "ECU Programming Date"
+        override val description = "Date when the ECU was last reprogrammed, BCD YYYYMMDD format (ISO 14229 DID 0xF199)"
+        override val code = "22F199"
+        override val protocol = UDSCommandProtocol(UDSService.READ_DATA_BY_IDENTIFIER, "F199")
+        override val codec = Codec.Hex
     }
 
     // ── Session keep-alive (0x3E) ────────────────────────────────────────────

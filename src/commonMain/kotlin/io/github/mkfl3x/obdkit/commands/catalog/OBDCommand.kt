@@ -7,6 +7,18 @@ import io.github.mkfl3x.obdkit.commands.codec.Codec
 import io.github.mkfl3x.obdkit.commands.protocol.OBDCommandProtocol
 import io.github.mkfl3x.obdkit.commands.protocol.OBDService
 
+// OBD-II commands mandated by SAE J1979 / ISO 15031-5.
+//
+// All passenger vehicles sold in the USA (MY 1996+) and Europe (MY 2001+ EOBD) must
+// support these PIDs and modes. Manufacturers are only required to report a PID when
+// the corresponding hardware/system is present on the vehicle (e.g. a diesel with no
+// MAF sensor is exempt from PID 0110). Use the SupportedPids bitmasks (0100, 0120,
+// 0140, 0160) to discover which PIDs a specific ECU actually implements before
+// requesting them.
+//
+// Manufacturer-specific enhanced PIDs (Toyota Mode 21, BMW UDS, VAG KWP, etc.) are
+// NOT part of this catalog — store them on your side.
+
 sealed class OBDCommand : Command {
     final override val branded = CommandBrand(Brand.UNIVERSAL)
 
