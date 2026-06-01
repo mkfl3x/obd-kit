@@ -1,5 +1,6 @@
 plugins {
     kotlin("multiplatform") version "2.3.20"
+    kotlin("plugin.serialization") version "2.3.20"
     `maven-publish`
 }
 
@@ -19,6 +20,7 @@ kotlin {
     sourceSets {
         commonMain.dependencies {
             api("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.9.0")
+            implementation("org.jetbrains.kotlinx:kotlinx-serialization-core:1.8.0")
         }
         commonTest.dependencies {
             implementation(kotlin("test"))

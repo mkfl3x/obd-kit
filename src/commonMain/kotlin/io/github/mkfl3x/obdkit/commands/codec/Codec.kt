@@ -1,16 +1,20 @@
 package io.github.mkfl3x.obdkit.commands.codec
 
 import io.github.mkfl3x.obdkit.commands.CommandResult
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
 
 // Sealed class that describes HOW to decode raw response bytes from the vehicle.
 // Each variant carries exactly the parameters it needs — no nullable fields.
 // decode() receives the bytes after the response header has been stripped (done by Command.decode).
+@Serializable
 sealed class Codec {
 
     abstract val outputType: OutputType
     abstract fun decode(bytes: List<Int>): CommandResult
 
     // Raw bytes without decoding — for debugging or proprietary formats
+    @Serializable @SerialName("Raw")
     object Raw : Codec() {
         override val outputType = OutputType.BYTE_ARRAY
         override fun decode(bytes: List<Int>) =
@@ -18,6 +22,7 @@ sealed class Codec {
     }
 
     // ASCII text (calibration identifiers, free-form text)
+    @Serializable @SerialName("Ascii")
     object Ascii : Codec() {
         override val outputType = OutputType.STRING
         override fun decode(bytes: List<Int>) =
@@ -25,6 +30,7 @@ sealed class Codec {
     }
 
     // Bytes as a space-separated hex string, e.g. "4A 2F 00"
+    @Serializable @SerialName("Hex")
     object Hex : Codec() {
         override val outputType = OutputType.STRING
         override fun decode(bytes: List<Int>) =
@@ -35,6 +41,7 @@ sealed class Codec {
 
     // Vehicle Identification Number (Mode 09 PID 02).
     // First byte after the header is the block count (always 0x01), followed by 17 ASCII VIN characters.
+    @Serializable @SerialName("Vin")
     object Vin : Codec() {
         override val outputType = OutputType.STRING
         override fun decode(bytes: List<Int>) =
@@ -45,6 +52,7 @@ sealed class Codec {
 
     // OBD-II / UDS diagnostic trouble codes — returns a list like ["P0301", "U0100"].
     // Mode 03 response format (after stripping "43"): [count, b1, b2, b1, b2, ...]
+    @Serializable @SerialName("DTC")
     object DTC : Codec() {
         override val outputType = OutputType.STRING_LIST
 
@@ -82,6 +90,7 @@ sealed class Codec {
      *   startByte=0, length=1, factor=1.0, offset=-40.0, unit="°C"
      *   byte [0x7B] → rawValue=123 → 123 - 40 = 83 °C
      */
+    @Serializable @SerialName("Linear")
     data class Linear(
         val factor: Double,
         val offset: Double = 0.0,
@@ -103,6 +112,7 @@ sealed class Codec {
      * Formula: byte * 100.0 / 255.0
      * Example: calculated engine load (PID 0x04)
      */
+    @Serializable @SerialName("Percent")
     data class Percent(val startByte: Int = 0) : Codec() {
         override val outputType = OutputType.FLOAT
         override fun decode(bytes: List<Int>) =
@@ -114,6 +124,7 @@ sealed class Codec {
      * Formula: (byte - 128) * 100.0 / 128.0
      * Example: short-term fuel trim (PID 0x06–0x09)
      */
+    @Serializable @SerialName("SignedPercent")
     data class SignedPercent(val startByte: Int = 0) : Codec() {
         override val outputType = OutputType.FLOAT
         override fun decode(bytes: List<Int>) =
@@ -128,6 +139,7 @@ sealed class Codec {
      *   bits = mapOf(7 to "PID_01_supported", 6 to "PID_02_supported", ...)
      * Result: Map<String, Boolean> — flag name → whether the bit is set
      */
+    @Serializable @SerialName("Bitfield")
     data class Bitfield(
         val startByte: Int = 0,
         val bits: Map<Int, String>
@@ -148,6 +160,7 @@ sealed class Codec {
      * Example — fuel system status (PID 0x03):
      *   table = mapOf(0x01 to "Open loop", 0x02 to "Closed loop", 0x04 to "Open loop — fault")
      */
+    @Serializable @SerialName("EnumLookup")
     data class EnumLookup(
         val startByte: Int = 0,
         val table: Map<Int, String>

@@ -1,5 +1,8 @@
 package io.github.mkfl3x.obdkit.commands.protocol
 
+import kotlinx.serialization.Serializable
+
+@Serializable
 enum class OBDService(val id: Int, val displayName: String) {
     CURRENT_DATA          (0x01, "Show Current Data"),
     FREEZE_FRAME          (0x02, "Show Freeze Frame Data"),

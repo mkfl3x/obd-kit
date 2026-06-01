@@ -1,5 +1,8 @@
 package io.github.mkfl3x.obdkit.commands.protocol
 
+import kotlinx.serialization.Serializable
+
+@Serializable
 enum class UDSService(val id: Int, val displayName: String) {
     DIAGNOSTIC_SESSION_CONTROL (0x10, "Diagnostic Session Control"),
     ECU_RESET                  (0x11, "ECU Reset"),
