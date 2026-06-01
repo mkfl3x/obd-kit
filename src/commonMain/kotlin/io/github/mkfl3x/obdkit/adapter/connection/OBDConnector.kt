@@ -1,6 +1,5 @@
 package io.github.mkfl3x.obdkit.adapter.connection
 
-import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.StateFlow
 
 // Physical connection abstraction for an ELM327-compatible adapter.
@@ -9,9 +8,6 @@ interface OBDConnector {
 
     // Current connection state — StateFlow for reactive observation in UI
     val state: StateFlow<ConnectionState>
-
-    // Start device discovery and return a flow of found devices; cancelled with the coroutine
-    fun scan(): Flow<DiscoveredDevice>
 
     // Establish a connection to the device at the given address (MAC or IP)
     suspend fun connect(address: String)
