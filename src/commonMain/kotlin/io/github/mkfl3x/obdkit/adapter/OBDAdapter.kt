@@ -18,6 +18,7 @@ class OBDAdapter(
     private val commandTimeout: Duration = 10.seconds
 ) {
 
+    val connectionState get() = connector.state.value
     lateinit var info: AdapterInfo private set
     private val commandMutex = Mutex()
 
