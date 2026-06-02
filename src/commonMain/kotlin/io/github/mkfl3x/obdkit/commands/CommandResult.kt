@@ -21,4 +21,7 @@ sealed class CommandResult {
             other is ByteArrayResult && bytes.contentEquals(other.bytes)
         override fun hashCode() = bytes.contentHashCode()
     }
+
+    // Multiple named channels from a single response (Multi)
+    data class MapResult(val channels: Map<String, CommandResult>) : CommandResult()
 }

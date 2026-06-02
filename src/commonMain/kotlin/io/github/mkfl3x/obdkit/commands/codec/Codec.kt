@@ -50,6 +50,31 @@ sealed class Codec {
             )
     }
 
+    /**
+     * Multiple named channels decoded from a single response.
+     * Each channel applies its own codec starting at a given byte offset.
+     *
+     * Example — O2 sensor (PID 0x14):
+     *   channels = [Channel("voltage", 0, Linear(0.005, 0.0, "V")),
+     *               Channel("fuel_trim", 1, SignedPercent())]
+     *   bytes [0x7E, 0x80] → { "voltage": 0.63 V, "fuel_trim": 0.0 % }
+     */
+    @Serializable @SerialName("Multi")
+    data class Multi(val channels: List<Channel>) : Codec() {
+        @Serializable
+        data class Channel(val name: String, val startByte: Int, val codec: Codec)
+
+        override val outputType = OutputType.MAP
+
+        override fun decode(bytes: List<Int>): CommandResult =
+            CommandResult.MapResult(
+                channels.associate { ch ->
+                    val slice = bytes.drop(ch.startByte)
+                    ch.name to ch.codec.decode(slice)
+                }
+            )
+    }
+
     // OBD-II / UDS diagnostic trouble codes — returns a list like ["P0301", "U0100"].
     // Mode 03 response format (after stripping "43"): [count, b1, b2, b1, b2, ...]
     @Serializable @SerialName("DTC")

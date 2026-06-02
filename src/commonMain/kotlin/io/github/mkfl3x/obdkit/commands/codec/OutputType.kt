@@ -7,5 +7,6 @@ enum class OutputType {
     STRING,      // Text value (Ascii, Hex, Vin, EnumLookup)
     STRING_LIST, // List of strings (DTC codes)
     BOOLEAN_MAP, // Map of flag name → true/false (Bitfield)
-    BYTE_ARRAY   // Raw bytes without decoding (Raw)
+    BYTE_ARRAY,  // Raw bytes without decoding (Raw)
+    MAP          // Named channels, each with its own result (Multi)
 }
