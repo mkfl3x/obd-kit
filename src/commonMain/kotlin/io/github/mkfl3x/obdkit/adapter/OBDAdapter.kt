@@ -30,9 +30,9 @@ class OBDAdapter(
         executeCommand(ATCommand.AutoProtocol.code)
         executeCommand("0100").also { delay(1.seconds) }
         info = AdapterInfo(
-            firmware = (executeCommand(ATCommand.Firmware) as CommandResult.StringResult).value,
-            deviceDescription = (executeCommand(ATCommand.DeviceDescription) as CommandResult.StringResult).value,
-            protocolNumber = (executeCommand(ATCommand.ProtocolNumber) as CommandResult.StringResult).value
+            firmware = (executeCommand(ATCommand.Firmware, protocolCheck = false) as CommandResult.StringResult).value,
+            deviceDescription = (executeCommand(ATCommand.DeviceDescription, protocolCheck = false) as CommandResult.StringResult).value,
+            protocolNumber = (executeCommand(ATCommand.ProtocolNumber, protocolCheck = false) as CommandResult.StringResult).value
         )
     }
 
