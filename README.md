@@ -1,7 +1,7 @@
 # obd-kit
 
 ![Build](https://github.com/mkfl3x/obd-kit/actions/workflows/publish.yml/badge.svg)
-![Version](https://img.shields.io/badge/version-0.0.7-blue)
+![Version](https://img.shields.io/badge/version-0.0.8-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
 
 Kotlin JVM library for OBD-II / UDS diagnostics via ELM327 adapters.
