@@ -5,7 +5,7 @@ import kotlin.time.Duration
 
 // Command did not receive a response within the allotted time
 class OBDCommandTimeoutException : Exception {
-    constructor(command: Command, timeout: Duration) :
+    constructor(command: Command<*>, timeout: Duration) :
         super("Command '${command.label}' timed out after $timeout")
     constructor(data: String, timeout: Duration) :
         super("Command '$data' timed out after $timeout")
@@ -16,7 +16,7 @@ class OBDAdapterNotConnectedException :
     IllegalStateException("OBD adapter is not connected")
 
 // Command requires a transport protocol that does not match the one detected by the adapter
-class IncompatibleTransportException(command: Command, protocol: AdapterProtocol) :
+class IncompatibleTransportException(command: Command<*>, protocol: AdapterProtocol) :
     UnsupportedOperationException(
         "Command '${command.label}' requires ${command.protocol.displayName}, " +
             "but adapter is connected via $protocol"

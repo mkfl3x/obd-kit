@@ -6,11 +6,13 @@ import io.github.mkfl3x.obdkit.commands.Command
 import io.github.mkfl3x.obdkit.commands.CommandResult
 import io.github.mkfl3x.obdkit.commands.Writeable
 import io.github.mkfl3x.obdkit.commands.catalog.ATCommand
+import io.github.mkfl3x.obdkit.commands.catalog.OBDCommand
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withTimeoutOrNull
 import kotlin.time.Duration
+import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
 
 class OBDAdapter(
@@ -24,19 +26,24 @@ class OBDAdapter(
 
     suspend fun connect(address: String) {
         connector.connect(address)
-        executeCommand(ATCommand.Reset.code).also { delay(1.seconds) }
-        executeCommand(ATCommand.EchoOff.code)
-        executeCommand(ATCommand.LinefeedsOff.code)
-        executeCommand(ATCommand.AutoProtocol.code)
-        executeCommand("0100").also { delay(1.seconds) }
+        listOf(
+            ATCommand.Reset,
+            ATCommand.EchoOff,
+            ATCommand.LinefeedsOff,
+            ATCommand.AutoProtocol,
+            OBDCommand.SupportedPids
+        ).forEach {
+            executeCommand(it, protocolCheck = false)
+            delay(500.milliseconds)
+        }
         info = AdapterInfo(
-            firmware = (executeCommand(ATCommand.Firmware, protocolCheck = false) as CommandResult.StringResult).value,
-            deviceDescription = (executeCommand(ATCommand.DeviceDescription, protocolCheck = false) as CommandResult.StringResult).value,
-            protocolNumber = (executeCommand(ATCommand.ProtocolNumber, protocolCheck = false) as CommandResult.StringResult).value
+            firmware = executeCommand(ATCommand.Firmware, protocolCheck = false).value,
+            deviceDescription = executeCommand(ATCommand.DeviceDescription, protocolCheck = false).value,
+            protocolNumber = executeCommand(ATCommand.ProtocolNumber, protocolCheck = false).value
         )
     }
 
-    suspend fun executeCommand(command: Command, protocolCheck: Boolean = true): CommandResult {
+    suspend fun <T : CommandResult> executeCommand(command: Command<T>, protocolCheck: Boolean = true): T {
         if (protocolCheck && !info.protocol.isCompatibleWith(command.protocol))
             throw IncompatibleTransportException(command, info.protocol)
         return executeCommand(command.code + if (command is Writeable) command.payload else "")

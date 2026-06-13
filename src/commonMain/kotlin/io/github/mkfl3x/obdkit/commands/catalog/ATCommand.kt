@@ -1,15 +1,15 @@
 package io.github.mkfl3x.obdkit.commands.catalog
 
 import io.github.mkfl3x.obdkit.commands.Command
-import io.github.mkfl3x.obdkit.commands.brand.Brand
-import io.github.mkfl3x.obdkit.commands.brand.CommandBrand
+import io.github.mkfl3x.obdkit.commands.CommandResult
 import io.github.mkfl3x.obdkit.commands.codec.Codec
 import io.github.mkfl3x.obdkit.commands.protocol.ATCommandProtocol
 
-sealed class ATCommand : Command {
+abstract class ATCommand : Command<CommandResult.StringResult>() {
+
     final override val protocol = ATCommandProtocol
     final override val codec = Codec.Ascii
-    final override val branded = CommandBrand(Brand.UNIVERSAL)
+    final override val branded = CommandBrand()
 
     // ── Reset and initialisation ─────────────────────────────────────────────
 
@@ -77,8 +77,7 @@ sealed class ATCommand : Command {
 
     object AllowLong : ATCommand() {
         override val label = "Allow Long"
-        override val description =
-            "Allow responses longer than 7 data bytes (disables the standard ISO-TP length check)"
+        override val description = "Allow responses longer than 7 data bytes (disables the standard ISO-TP length check)"
         override val code = "ATAL"
     }
 
@@ -151,8 +150,7 @@ sealed class ATCommand : Command {
 
     object AdaptiveTimingAggressive : ATCommand() {
         override val label = "Adaptive Timing Aggressive"
-        override val description =
-            "Enable aggressive adaptive timing; maximises throughput at the risk of timeouts on slow buses"
+        override val description = "Enable aggressive adaptive timing; maximises throughput at the risk of timeouts on slow buses"
         override val code = "ATAT2"
     }
 
@@ -175,8 +173,7 @@ sealed class ATCommand : Command {
     /** mask: hex bitmask; 1-bits are checked against the filter, 0-bits are ignored */
     data class CanMask(val mask: String) : ATCommand() {
         override val label = "CAN Mask"
-        override val description =
-            "Set CAN receive ID mask; 1-bits in the mask mean that bit of the ID is checked against the filter"
+        override val description = "Set CAN receive ID mask; 1-bits in the mask mean that bit of the ID is checked against the filter"
         override val code = "ATCM$mask"
     }
 
@@ -188,8 +185,7 @@ sealed class ATCommand : Command {
 
     object CanSilentMonOn : ATCommand() {
         override val label = "CAN Silent Monitor On"
-        override val description =
-            "Enable silent monitoring; adapter listens without sending ACK bits (non-intrusive sniffing)"
+        override val description = "Enable silent monitoring; adapter listens without sending ACK bits (non-intrusive sniffing)"
         override val code = "ATCSM1"
     }
 
@@ -203,8 +199,7 @@ sealed class ATCommand : Command {
     /** address: 1-byte hex string; enables CAN extended addressing with this address byte */
     data class SetExtendedAddress(val address: String) : ATCommand() {
         override val label = "Set Extended Address"
-        override val description =
-            "Enable CAN extended addressing and set the extended address byte appended to each frame"
+        override val description = "Enable CAN extended addressing and set the extended address byte appended to each frame"
         override val code = "ATCEA$address"
     }
 
@@ -232,8 +227,7 @@ sealed class ATCommand : Command {
     /** mode: 0 = off, 1 = auto (default), 2 = manual (requires FlowControlHeader + FlowControlData) */
     data class FlowControlMode(val mode: Int) : ATCommand() {
         override val label = "Flow Control Mode"
-        override val description =
-            "Set ISO-TP flow control mode: 0=off, 1=auto (default), 2=manual (configure with ATFC SH and ATFC SD)"
+        override val description = "Set ISO-TP flow control mode: 0=off, 1=auto (default), 2=manual (configure with ATFC SH and ATFC SD)"
         override val code = "ATFC SM$mode"
     }
 
@@ -316,22 +310,19 @@ sealed class ATCommand : Command {
 
     object DescribeProtocol : ATCommand() {
         override val label = "Describe Protocol"
-        override val description =
-            "Human-readable name of the currently active OBD protocol, e.g. \"ISO 15765-4 (CAN 11/500)\""
+        override val description = "Human-readable name of the currently active OBD protocol, e.g. \"ISO 15765-4 (CAN 11/500)\""
         override val code = "ATDP"
     }
 
     object ParametersSummary : ATCommand() {
         override val label = "Programmable Parameters Summary"
-        override val description =
-            "Dump all ELM327 programmable parameters (PP xx) and their current on/off state and values"
+        override val description = "Dump all ELM327 programmable parameters (PP xx) and their current on/off state and values"
         override val code = "ATPPS"
     }
 
     object BufferDump : ATCommand() {
         override val label = "Buffer Dump"
-        override val description =
-            "Print the contents of the ELM327 internal receive buffer in hex; useful for low-level debugging"
+        override val description = "Print the contents of the ELM327 internal receive buffer in hex; useful for low-level debugging"
         override val code = "ATBD"
     }
 

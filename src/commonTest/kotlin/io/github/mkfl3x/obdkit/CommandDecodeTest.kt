@@ -2,7 +2,6 @@ package io.github.mkfl3x.obdkit
 
 import io.github.mkfl3x.obdkit.commands.Command
 import io.github.mkfl3x.obdkit.commands.CommandResult
-import io.github.mkfl3x.obdkit.commands.brand.CommandBrand
 import io.github.mkfl3x.obdkit.commands.codec.Codec
 import io.github.mkfl3x.obdkit.commands.protocol.*
 import kotlin.test.Test
@@ -74,30 +73,30 @@ class CommandDecodeTest {
 
     // ── Helpers ───────────────────────────────────────────────────────────────
 
-    private fun obdCommand(code: String, codec: Codec) = object : Command {
+    private fun obdCommand(code: String, codec: Codec) = object : Command<CommandResult>() {
         override val label = "test"
         override val description = "test"
         override val code = code
         override val protocol = OBDCommandProtocol(OBDService.CURRENT_DATA)
         override val codec = codec
-        override val branded = CommandBrand()
+        override val branded = Command.CommandBrand()
     }
 
-    private fun udsCommand(code: String, codec: Codec) = object : Command {
+    private fun udsCommand(code: String, codec: Codec) = object : Command<CommandResult>() {
         override val label = "test"
         override val description = "test"
         override val code = code
         override val protocol = UDSCommandProtocol(UDSService.READ_DATA_BY_IDENTIFIER)
         override val codec = codec
-        override val branded = CommandBrand()
+        override val branded = Command.CommandBrand()
     }
 
-    private fun atCommand(code: String, codec: Codec) = object : Command {
+    private fun atCommand(code: String, codec: Codec) = object : Command<CommandResult>() {
         override val label = "test"
         override val description = "test"
         override val code = code
         override val protocol = ATCommandProtocol
         override val codec = codec
-        override val branded = CommandBrand()
+        override val branded = Command.CommandBrand()
     }
 }

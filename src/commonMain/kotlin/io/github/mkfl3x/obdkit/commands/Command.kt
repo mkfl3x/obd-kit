@@ -1,34 +1,31 @@
 package io.github.mkfl3x.obdkit.commands
 
-import io.github.mkfl3x.obdkit.adapter.NegativeResponseException
-import io.github.mkfl3x.obdkit.commands.brand.CommandBrand
 import io.github.mkfl3x.obdkit.commands.codec.Codec
 import io.github.mkfl3x.obdkit.commands.protocol.ATCommandProtocol
 import io.github.mkfl3x.obdkit.commands.protocol.CommandProtocol
 
 // Diagnostic command model — OBD-II, UDS, or AT.
-interface Command {
+abstract class Command<T : CommandResult> {
 
-    val label: String        // short name for UI: "Engine RPM"
-    val description: String  // detailed description for an AI agent: "Reads current engine speed in RPM via OBD-II Mode 01 PID 0x0C"
-    val code: String         // hex string sent to the adapter: "010C", "ATZ", "2201F190"
-    val protocol: CommandProtocol
-    val codec: Codec
-    val branded: CommandBrand
+    abstract val label: String        // short name for UI: "Engine RPM"
+    abstract val description: String  // detailed description for an AI agent: "Reads current engine speed in RPM via OBD-II Mode 01 PID 0x0C"
+    abstract val code: String         // hex string sent to the adapter: "010C", "ATZ", "2201F190"
+    abstract val protocol: CommandProtocol
+    abstract val codec: Codec
+    abstract val branded: CommandBrand
 
     // Decodes a raw ELM327 response into a typed result using the command's codec.
     // The response prefix is derived automatically from code and protocol.
-    fun decode(raw: String): CommandResult {
+    @Suppress("UNCHECKED_CAST")
+    fun decode(raw: String): T {
         val cleaned = raw.replace("\r", "").replace("\n", "").replace(">", "").trim()
-        if (knownErrorPatterns.any { cleaned.contains(it, ignoreCase = true) })
-            throw NegativeResponseException(cleaned)
         val bytes = when (protocol) {
             // AT responses are plain ASCII text, not hex; pass char codes directly
             is ATCommandProtocol -> cleaned.map { it.code }
             // OBD-II and UDS: response service byte = request service byte + 0x40
             else -> extractPayloadBytes(cleaned, deriveResponsePrefix(code))
         }
-        return codec.decode(bytes)
+        return codec.decode(bytes) as T
     }
 
     // Derives the expected response prefix from the command code.
@@ -55,9 +52,9 @@ interface Command {
             .mapNotNull { it.toIntOrNull(16) }
     }
 
-    companion object {
-        private val knownErrorPatterns = listOf(
-            "NO DATA", "ERROR", "UNABLE TO CONNECT", "BUS INIT", "STOPPED", "7F"
-        )
-    }
+    // Command ownership: which manufacturer it belongs to and whether it is proprietary
+    data class CommandBrand(
+        val brand: String = "UNIVERSAL",
+        val proprietary: Boolean = false
+    )
 }

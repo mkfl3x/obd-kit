@@ -4,9 +4,6 @@ import io.github.mkfl3x.obdkit.commands.CommandResult
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
-// Sealed class that describes HOW to decode raw response bytes from the vehicle.
-// Each variant carries exactly the parameters it needs — no nullable fields.
-// decode() receives the bytes after the response header has been stripped (done by Command.decode).
 @Serializable
 sealed class Codec {
 
