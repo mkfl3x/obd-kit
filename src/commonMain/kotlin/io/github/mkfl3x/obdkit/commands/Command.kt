@@ -24,6 +24,7 @@ abstract class Command<T : CommandResult> {
             // OBD-II and UDS: response service byte = request service byte + 0x40
             else -> extractPayloadBytes(cleaned, deriveResponsePrefix(code))
         }
+        if (bytes.isEmpty()) throw IllegalStateException("No data for command '$code'")
         return codec.decode(bytes)
     }
 
