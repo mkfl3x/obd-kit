@@ -11,12 +11,11 @@ abstract class Command<T : CommandResult> {
     abstract val description: String  // detailed description for an AI agent: "Reads current engine speed in RPM via OBD-II Mode 01 PID 0x0C"
     abstract val code: String         // hex string sent to the adapter: "010C", "ATZ", "2201F190"
     abstract val protocol: CommandProtocol
-    abstract val codec: Codec
+    abstract val codec: Codec<T>
     abstract val branded: CommandBrand
 
     // Decodes a raw ELM327 response into a typed result using the command's codec.
     // The response prefix is derived automatically from code and protocol.
-    @Suppress("UNCHECKED_CAST")
     fun decode(raw: String): T {
         val cleaned = raw.replace("\r", "").replace("\n", "").replace(">", "").trim()
         val bytes = when (protocol) {
@@ -25,7 +24,7 @@ abstract class Command<T : CommandResult> {
             // OBD-II and UDS: response service byte = request service byte + 0x40
             else -> extractPayloadBytes(cleaned, deriveResponsePrefix(code))
         }
-        return codec.decode(bytes) as T
+        return codec.decode(bytes)
     }
 
     // Derives the expected response prefix from the command code.

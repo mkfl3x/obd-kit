@@ -5,14 +5,14 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 @Serializable
-sealed class Codec {
+sealed class Codec<out T : CommandResult> {
 
     abstract val outputType: OutputType
-    abstract fun decode(bytes: List<Int>): CommandResult
+    abstract fun decode(bytes: List<Int>): T
 
     // Raw bytes without decoding — for debugging or proprietary formats
     @Serializable @SerialName("Raw")
-    object Raw : Codec() {
+    object Raw : Codec<CommandResult.ByteArrayResult>() {
         override val outputType = OutputType.BYTE_ARRAY
         override fun decode(bytes: List<Int>) =
             CommandResult.ByteArrayResult(bytes.map { it.toByte() }.toByteArray())
@@ -20,7 +20,7 @@ sealed class Codec {
 
     // ASCII text (calibration identifiers, free-form text)
     @Serializable @SerialName("Ascii")
-    object Ascii : Codec() {
+    object Ascii : Codec<CommandResult.StringResult>() {
         override val outputType = OutputType.STRING
         override fun decode(bytes: List<Int>) =
             CommandResult.StringResult(bytes.joinToString("") { it.toChar().toString() })
@@ -28,7 +28,7 @@ sealed class Codec {
 
     // Bytes as a space-separated hex string, e.g. "4A 2F 00"
     @Serializable @SerialName("Hex")
-    object Hex : Codec() {
+    object Hex : Codec<CommandResult.StringResult>() {
         override val outputType = OutputType.STRING
         override fun decode(bytes: List<Int>) =
             CommandResult.StringResult(
@@ -39,7 +39,7 @@ sealed class Codec {
     // Vehicle Identification Number (Mode 09 PID 02).
     // First byte after the header is the block count (always 0x01), followed by 17 ASCII VIN characters.
     @Serializable @SerialName("Vin")
-    object Vin : Codec() {
+    object Vin : Codec<CommandResult.StringResult>() {
         override val outputType = OutputType.STRING
         override fun decode(bytes: List<Int>) =
             CommandResult.StringResult(
@@ -57,13 +57,13 @@ sealed class Codec {
      *   bytes [0x7E, 0x80] → { "voltage": 0.63 V, "fuel_trim": 0.0 % }
      */
     @Serializable @SerialName("Multi")
-    data class Multi(val channels: List<Channel>) : Codec() {
+    data class Multi(val channels: List<Channel>) : Codec<CommandResult.MapResult>() {
         @Serializable
-        data class Channel(val name: String, val startByte: Int, val codec: Codec)
+        data class Channel(val name: String, val startByte: Int, val codec: Codec<CommandResult>)
 
         override val outputType = OutputType.MAP
 
-        override fun decode(bytes: List<Int>): CommandResult =
+        override fun decode(bytes: List<Int>): CommandResult.MapResult =
             CommandResult.MapResult(
                 channels.associate { ch ->
                     val slice = bytes.drop(ch.startByte)
@@ -75,10 +75,10 @@ sealed class Codec {
     // OBD-II / UDS diagnostic trouble codes — returns a list like ["P0301", "U0100"].
     // Mode 03 response format (after stripping "43"): [count, b1, b2, b1, b2, ...]
     @Serializable @SerialName("DTC")
-    object DTC : Codec() {
+    object DTC : Codec<CommandResult.StringListResult>() {
         override val outputType = OutputType.STRING_LIST
 
-        override fun decode(bytes: List<Int>): CommandResult {
+        override fun decode(bytes: List<Int>): CommandResult.StringListResult {
             if (bytes.isEmpty()) return CommandResult.StringListResult(emptyList())
             val count = bytes[0]
             val dtcs = bytes.drop(1)
@@ -119,10 +119,10 @@ sealed class Codec {
         val unit: String,
         val startByte: Int = 0,
         val length: Int = 1
-    ) : Codec() {
+    ) : Codec<CommandResult.FloatResult>() {
         override val outputType = OutputType.FLOAT
 
-        override fun decode(bytes: List<Int>): CommandResult {
+        override fun decode(bytes: List<Int>): CommandResult.FloatResult {
             var rawValue = 0
             for (i in 0 until length) rawValue = (rawValue shl 8) or bytes[startByte + i]
             return CommandResult.FloatResult((rawValue * factor + offset).toFloat(), unit)
@@ -135,7 +135,7 @@ sealed class Codec {
      * Example: calculated engine load (PID 0x04)
      */
     @Serializable @SerialName("Percent")
-    data class Percent(val startByte: Int = 0) : Codec() {
+    data class Percent(val startByte: Int = 0) : Codec<CommandResult.FloatResult>() {
         override val outputType = OutputType.FLOAT
         override fun decode(bytes: List<Int>) =
             CommandResult.FloatResult((bytes[startByte] * 100.0 / 255.0).toFloat(), "%")
@@ -147,7 +147,7 @@ sealed class Codec {
      * Example: short-term fuel trim (PID 0x06–0x09)
      */
     @Serializable @SerialName("SignedPercent")
-    data class SignedPercent(val startByte: Int = 0) : Codec() {
+    data class SignedPercent(val startByte: Int = 0) : Codec<CommandResult.FloatResult>() {
         override val outputType = OutputType.FLOAT
         override fun decode(bytes: List<Int>) =
             CommandResult.FloatResult(((bytes[startByte] - 128) * 100.0 / 128.0).toFloat(), "%")
@@ -165,10 +165,10 @@ sealed class Codec {
     data class Bitfield(
         val startByte: Int = 0,
         val bits: Map<Int, String>
-    ) : Codec() {
+    ) : Codec<CommandResult.BooleanMapResult>() {
         override val outputType = OutputType.BOOLEAN_MAP
 
-        override fun decode(bytes: List<Int>): CommandResult {
+        override fun decode(bytes: List<Int>): CommandResult.BooleanMapResult {
             val byte = bytes[startByte]
             return CommandResult.BooleanMapResult(
                 bits.entries.associate { (bitIndex, flagName) -> flagName to ((byte shr bitIndex) and 1 == 1) }
@@ -186,10 +186,10 @@ sealed class Codec {
     data class EnumLookup(
         val startByte: Int = 0,
         val table: Map<Int, String>
-    ) : Codec() {
+    ) : Codec<CommandResult.StringResult>() {
         override val outputType = OutputType.STRING
 
-        override fun decode(bytes: List<Int>): CommandResult {
+        override fun decode(bytes: List<Int>): CommandResult.StringResult {
             val key = bytes[startByte]
             return CommandResult.StringResult(
                 table[key] ?: "Unknown (0x${key.toString(16).padStart(2, '0').uppercase()})"
