@@ -12,12 +12,14 @@ abstract class OBDCommand<T : CommandResult> : Command<T>() {
 
     // ── Mode 01 — Current data ───────────────────────────────────────────────
 
-    object SupportedPids : OBDCommand<CommandResult.StringResult>() {
-        override val label = "Supported PIDs [01–20]"
-        override val description = "Bitmask of supported Mode 01 PIDs in the range 01–20 (32 bits, 4 bytes)"
-        override val code = "0100"
+    // Bitmask of supported PIDs in the 32-PID range after [base] (0x00, 0x20, … 0xC0).
+    // Internal: consumers get the decoded set via OBDAdapter.supportedPids().
+    internal class SupportedPids(base: Int) : OBDCommand<CommandResult.ByteArrayResult>() {
+        override val label = "Supported PIDs"
+        override val description = "Bitmask of supported Mode 01 PIDs in the 32-PID range after $base"
+        override val code = "01" + base.toString(16).padStart(2, '0').uppercase()
         override val protocol = OBDCommandProtocol(OBDService.CURRENT_DATA)
-        override val codec = Codec.Hex
+        override val codec = Codec.Raw
     }
 
     object MonitorStatus : OBDCommand<CommandResult.StringResult>() {

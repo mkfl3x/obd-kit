@@ -30,12 +30,12 @@ class OBDAdapter(
             ATCommand.Reset,
             ATCommand.EchoOff,
             ATCommand.LinefeedsOff,
-            ATCommand.AutoProtocol,
-            OBDCommand.SupportedPids
+            ATCommand.AutoProtocol
         ).forEach {
             executeCommand(it, protocolCheck = false)
             delay(500.milliseconds)
         }
+        executeCommand("0100") // triggers protocol auto-detection
         info = AdapterInfo(
             firmware = executeCommand(ATCommand.Firmware, protocolCheck = false).value,
             deviceDescription = executeCommand(ATCommand.DeviceDescription, protocolCheck = false).value,
@@ -48,6 +48,27 @@ class OBDAdapter(
             throw IncompatibleTransportException(command, info.protocol)
         return executeCommand(command.code + if (command is Writeable) command.payload else "")
             .let { command.decode(it) }
+    }
+
+    // Mode 01 PIDs this vehicle supports, read from the "Supported PIDs" bitmasks (0100, 0120, …).
+    // Each 4-byte mask is MSB first: bit 7 of the first byte is PID base+1, LSB of the last is base+32.
+    // PID base+32 (0x20, 0x40, …) flags that the next range exists; such flags are excluded from the result.
+    suspend fun supportedPids(): Set<Int> {
+        val pids = mutableSetOf<Int>()
+        for (base in 0x00..0xC0 step 0x20) {
+            val command = OBDCommand.SupportedPids(base)
+            val raw = try {
+                executeCommand(command.code)
+            } catch (_: OBDCommandTimeoutException) {
+                break
+            }
+            // "NO DATA" or a malformed answer — the vehicle doesn't report this range
+            val bytes = runCatching { command.decode(raw).bytes }.getOrNull() ?: break
+            val mask = bytes.take(4).fold(0L) { acc, byte -> (acc shl 8) or (byte.toLong() and 0xFF) }
+            pids += (1..32).filter { n -> (mask ushr (32 - n)) and 1L == 1L }.map { n -> base + n }
+            if (base + 0x20 !in pids) break
+        }
+        return pids.filterTo(mutableSetOf()) { it % 0x20 != 0 }
     }
 
     suspend fun executeCommand(code: String, normalizedResponse: Boolean = true): String {

@@ -157,8 +157,8 @@ sealed class Codec<out T : CommandResult> {
      * A single byte where each bit is a named boolean flag.
      * [bits] is a map of bit index (0 = LSB) → human-readable flag name.
      *
-     * Example — supported PIDs (PID 0x00):
-     *   bits = mapOf(7 to "PID_01_supported", 6 to "PID_02_supported", ...)
+     * Example — MIL status (PID 0x01, byte A):
+     *   bits = mapOf(7 to "MIL")
      * Result: Map<String, Boolean> — flag name → whether the bit is set
      */
     @Serializable @SerialName("Bitfield")
